@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+__MACOSX/
+
+# Large/raw research data
+data/raw/WRDSoptions.csv
+*.zip
+
+# Generated artifacts
+figures/*
+results/*
+!figures/.gitkeep
+!results/.gitkeep
