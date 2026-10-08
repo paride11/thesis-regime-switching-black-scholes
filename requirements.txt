@@ -6,3 +6,4 @@ hmmlearn
 ipython
 jupyter
 nbconvert
+pytest

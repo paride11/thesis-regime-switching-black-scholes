@@ -63,7 +63,9 @@ data/processed/option_price_otm_90.csv
 ## Rebuild the option dataset
 
 ```bash
-python scripts/build_option_dataset.py
+python scripts/build_option_dataset.py          # both datasets
+python scripts/build_option_dataset.py atm      # only option_price_atm.csv
+python scripts/build_option_dataset.py otm_90   # only option_price_otm_90.csv
 ```
 
 ## Run the pricing pipeline
@@ -71,6 +73,16 @@ python scripts/build_option_dataset.py
 ```bash
 python scripts/run_regime_switching_black_scholes.py
 ```
+
+To run without opening plot windows, set `MPLBACKEND=Agg`.
+
+## Tests
+
+```bash
+pytest
+```
+
+The tests check Black-Scholes put-call parity, implied-volatility round trips, and that the regime-switching PDE reduces to Black-Scholes when all regimes share the same volatility.
 
 ## Notebooks
 

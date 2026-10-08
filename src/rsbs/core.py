@@ -6,18 +6,23 @@ and plotting utilities used throughout the project.
 
 from pathlib import Path
 import math
-import warnings
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-from scipy.stats import norm
-from scipy.linalg import logm
+from scipy.stats import norm, t as student_t
+from scipy.linalg import logm, lu_factor, lu_solve
+from scipy.optimize import brentq
 try:
     from hmmlearn.hmm import GaussianHMM
 except ImportError:  # Allows non-HMM utilities to be imported before installing requirements.
     GaussianHMM = None
+
+try:
+    from IPython.display import display
+except ImportError:  # Plain-text fallback outside Jupyter/IPython.
+    display = print
 
 try:
     from mpl_bsic.apply_bsic_style import BSIC_COLORS, DEFAULT_COLOR_CYCLE, DEFAULT_TITLE_STYLE
@@ -30,7 +35,7 @@ TRADING_DAYS_PER_YEAR = 252
 OPTION_TYPE = "call"
 ATM_MATURITY_DAYS = 30
 
-warnings.filterwarnings("ignore")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def apply_bsic_colors_only(fig, ax):
     """Apply the BSIC palette when available, without adding logos or source footers."""
@@ -53,9 +58,10 @@ def apply_bsic_colors_only(fig, ax):
 def find_data_file(filename):
     """Return the first existing location for an uploaded/project data file."""
     candidates = [
+        PROJECT_ROOT / "data" / "processed" / filename,
+        PROJECT_ROOT / "data" / "raw" / filename,
         Path("dataset") / filename,
         Path(filename),
-        Path("/mnt/data") / filename,
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -1041,6 +1047,9 @@ def solve_rsbs_pde_2state(
         ]
     )
 
+    # The system matrix is constant in time, so factor it once.
+    system_lu = lu_factor(system_matrix)
+
     # Step forward in time-to-maturity from payoff at tau=0 to price at tau=T.
     for step in range(n_t):
         tau_new = (step + 1) * dt
@@ -1060,7 +1069,7 @@ def solve_rsbs_pde_2state(
 
         rhs = np.concatenate([rhs_low, rhs_high])
 
-        solution = np.linalg.solve(system_matrix, rhs)
+        solution = lu_solve(system_lu, rhs)
 
         V_low[0] = low_lower_bc
         V_low[-1] = low_upper_bc
@@ -1269,6 +1278,8 @@ def solve_rsbs_pde_nstate(
         boundary_a.append(a)
         boundary_c.append(c)
 
+    system_lu = lu_factor(system_matrix)
+
     for step in range(n_t):
         tau_new = (step + 1) * dt
         lower_bc, upper_bc = _boundary_values(tau_new, Smax, K, r, option_type)
@@ -1284,7 +1295,7 @@ def solve_rsbs_pde_nstate(
             rhs_blocks.append(rhs_state)
 
         rhs = np.concatenate(rhs_blocks)
-        solution = np.linalg.solve(system_matrix, rhs)
+        solution = lu_solve(system_lu, rhs)
 
         for state in range(n_states):
             start = state * m
